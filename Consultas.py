@@ -29,5 +29,37 @@ collection = database[NOMBRE_COLLECTION]
 #1ra Consulta Simple:
 consultaUno = collection.find({}, {"_id": 1, "text": 1}).limit(LOS_PRIMEROS_DIEZ)
 
+#2da Consulta Simple:
+consultaDos = collection.distinct("lang")
+
+#3ra Consulta Simple:
+consultaTres = collection.find(
+    {"user.followers_count": {"$gt": 100000}},
+    {"_id": 1,
+     "user.name": 1,
+     "user.description": 1,
+     "user.followers_count": 1})
+
+#4ta Consulta Simple:
+consultaCuatro = collection.find({},
+    {"_id": 1,
+     "user.name": 1,
+     "user.followers_count": 1
+     }).sort("user.followers_count", -1).limit(LOS_PRIMEROS_DIEZ)
+
+
+print("----------PrimeraConsulta----------")
 for elemento in consultaUno:
+    print(elemento)
+
+print("----------SegundaConsulta----------")
+for elemento in consultaDos:
+    print(elemento)
+
+print("----------TerceraConsulta----------")
+for elemento in consultaTres:
+    print(elemento)
+
+print("----------CuartaConsulta----------")
+for elemento in consultaCuatro:
     print(elemento)
