@@ -11,9 +11,11 @@ import re
 import psycopg2
 import pandas as pd
 import geopandas as gpd
+import numpy as np
 from pymongo import MongoClient
 from pandas import Series, DataFrame
 from functools import reduce
+from collections import Counter
 
 #constantes
 MONGO_HOST = "localhost"
@@ -79,13 +81,12 @@ finally:
 gpdworld = gpd.read_file(PATH_WORLD)
 
 #mas datos para buscar
-dfWorldExtras = gpdworld[['ADM0_A3', 'ABBREV', 'POSTAL', 'FORMAL_EN']]
+dfWorldExtras = gpdworld[['ADM0_A3', 'ABBREV', 'FORMAL_EN']]
 
 #diccionario para renombrar las columnas
 extrasColumnDict = {
     'ADM0_A3': 'codigo',
     'ABBREV': 'abreviatura',
-    'POSTAL': 'codigoPostal',
     'FORMAL_EN': 'paisNombreFormal'
 }
 
@@ -110,7 +111,6 @@ seriesLocations = Series(todosLosLocations)
 #for document in collection.find({},{"_id": 0, "user.location": 1}):
 #    for index, row in dfApuntadorDePais.iterrows():
 #        if (re.match(document["user"]["location"], row["codigo"]))
-listaDeAciertos = []
 
 #for document in collection.find({},{"_id": 0, "user.location": 1}):
 #    dfResultado = dfApuntadorDePais.apply(
@@ -118,7 +118,37 @@ listaDeAciertos = []
 #        row.astype(str).str.contains(document["user"]["location"], case=False).any(),
 #        axis=1)
 
-for document in collection.find({},{"_id": 1, "user.location": 1}):
+#llenar vacios/none,
+dfApuntadorDePais = dfApuntadorDePais.fillna(value = np.nan)
+
+#re.escape para evitar caracter espaciales abiertos
+#str (x or "") para evitar None
+def revisarAcierto(document):
+    contadorDeAciertos = []
+    PAIS_NOMBRE = 'paisNombre'
+    columnasARecorrer = list(dfApuntadorDePais)
+    for elemento in columnasARecorrer:
+        INDEX = 0
+        while(INDEX < len(dfApuntadorDePais[elemento])):
+            if(re.search(re.escape(str(dfApuntadorDePais[elemento][INDEX])), str(document["user"]["location"] or ""), re.IGNORECASE)):
+                contadorDeAciertos.append(dfApuntadorDePais[PAIS_NOMBRE][INDEX])
+                INDEX += 1
+            INDEX += 1
+    return contadorDeAciertos
+
+for document in collection.find():
+    elPaisMasAcertado = Counter(revisarAcierto(document)).most_common(1)
+    userCountry = elPaisMasAcertado[0][0]
+    collection.update_one(
+        {"_id": "_id"},
+        {"$set": {"user.country": userCountry}})
+
+print("fin")
+
+#filtrar incremental?
+#for item in seriesLocations:
+
+"""    
     for index, row in dfApuntadorDePais.iterrows():
         if (re.search(document["user"]["location"], row[index], re.IGNORECASE)):
             collection.update_one(
@@ -131,6 +161,4 @@ for document in collection.find({},{"_id": 1, "user.location": 1}):
             {"$set": {"document.user.country": "unknown"}},
             "false", "true"
         )
-#filtrar incremental?
-#for item in seriesLocations:
-
+"""
