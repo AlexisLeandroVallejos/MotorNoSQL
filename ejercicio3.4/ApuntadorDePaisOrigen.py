@@ -7,6 +7,7 @@ mongoimport --db test --collection tweets --drop --file=crisis.20190410.json
 ----------world----------
 todos los archivos del zip de world, trabajopractico3
 """
+import time
 import re
 import psycopg2
 import pandas as pd
@@ -22,6 +23,7 @@ MONGO_HOST = "localhost"
 MONGO_PUERTO = 27017
 MONGO_DB_NOMBRE = "test"
 MONGO_COLLECTION_NOMBRE = "tweets"
+MONGO_COLLECTION_NOMBRE2 = "muestraDeTweets"
 POSTGRESQL_DB_NOMBRE = "world"
 POSTGRESQL_USER = "postgres"
 POSTGRESQL_PASSWORD = "postgres"
@@ -34,6 +36,7 @@ client = MongoClient(MONGO_HOST, MONGO_PUERTO)
 
 database = client[MONGO_DB_NOMBRE]
 collection = database[MONGO_COLLECTION_NOMBRE]
+#collection = database[MONGO_COLLECTION_NOMBRE2]
 
 #postgresql conexion
 try:
@@ -100,65 +103,48 @@ dfApuntadorDePais = reduce(
     [dfWorldCountry, dfWorldCity, dfWorldExtras]
 )
 
-
 #conocer cuales seran los diferentes criterios
-todosLosLocations = collection.find(
-    {},
-    {"_id": 0, "user.location": 1}).distinct("user.location")
-seriesLocations = Series(todosLosLocations)
-
-#etc
-#for document in collection.find({},{"_id": 0, "user.location": 1}):
-#    for index, row in dfApuntadorDePais.iterrows():
-#        if (re.match(document["user"]["location"], row["codigo"]))
-
-#for document in collection.find({},{"_id": 0, "user.location": 1}):
-#    dfResultado = dfApuntadorDePais.apply(
-#        lambda row:
-#        row.astype(str).str.contains(document["user"]["location"], case=False).any(),
-#        axis=1)
-
-#llenar vacios/none,
-dfApuntadorDePais = dfApuntadorDePais.fillna(value = np.nan)
+#todosLosLocations = collection.find(
+#    {},
+#    {"_id": 0, "user.location": 1}).distinct("user.location")
+#seriesLocations = Series(todosLosLocations)
 
 #re.escape para evitar caracter espaciales abiertos
-#str (x or "") para evitar None
+def compararStringSimilarDocument_Dataframe(INDEX, document, elemento):
+    return re.search(re.escape(str(dfApuntadorDePais[elemento][INDEX])), str(document["user"]["location"]),
+                     re.IGNORECASE)
+
+def locationNoEstaVacio(document):
+    return document["user"]["location"] != None
+
+def buscadorDeCoincidencias(INDEX, PAIS_NOMBRE, contadorDeAciertos, document, elemento):
+    while (INDEX < len(dfApuntadorDePais[elemento])):
+        if (compararStringSimilarDocument_Dataframe(INDEX, document, elemento)):
+            contadorDeAciertos.append(dfApuntadorDePais[PAIS_NOMBRE][INDEX])
+            INDEX += 1
+        INDEX += 1
+
 def revisarAcierto(document):
     contadorDeAciertos = []
     PAIS_NOMBRE = 'paisNombre'
     columnasARecorrer = list(dfApuntadorDePais)
-    for elemento in columnasARecorrer:
-        INDEX = 0
-        while(INDEX < len(dfApuntadorDePais[elemento])):
-            if(re.search(re.escape(str(dfApuntadorDePais[elemento][INDEX])), str(document["user"]["location"] or ""), re.IGNORECASE)):
-                contadorDeAciertos.append(dfApuntadorDePais[PAIS_NOMBRE][INDEX])
-                INDEX += 1
-            INDEX += 1
+    if not locationNoEstaVacio(document):
+        contadorDeAciertos.append("Unknown")
+    if locationNoEstaVacio(document):
+        for elemento in columnasARecorrer:
+            INDEX = 0
+            buscadorDeCoincidencias(INDEX, PAIS_NOMBRE, contadorDeAciertos, document, elemento)
     return contadorDeAciertos
 
-for document in collection.find():
+fin = len(list(collection.find({},{'_id': 1, 'user.location': 1})))
+progreso = 1
+inicio = time.time()
+for document in collection.find({},{'_id': 1, 'user.location': 1}):
     elPaisMasAcertado = Counter(revisarAcierto(document)).most_common(1)
     userCountry = elPaisMasAcertado[0][0]
-    collection.update_one(
-        {"_id": "_id"},
-        {"$set": {"user.country": userCountry}})
-
-print("fin")
-
-#filtrar incremental?
-#for item in seriesLocations:
-
-"""    
-    for index, row in dfApuntadorDePais.iterrows():
-        if (re.search(document["user"]["location"], row[index], re.IGNORECASE)):
-            collection.update_one(
-                {"_id": "document._id"},
-                {"$set": {"document.user.country": row[1]}},
-                "false", "true"
-            )
-    collection.update_one(
-            {"_id": "document._id"},
-            {"$set": {"document.user.country": "unknown"}},
-            "false", "true"
-        )
-"""
+    filtro = {'_id': document['_id']}
+    nuevoValor = {"$set": {"user.country": userCountry}}
+    collection.update_one(filtro, nuevoValor)
+    paso = time.time()
+    print(str(progreso)+ " / " + str(fin) + " # " + str(progreso/fin) + " | " + str(paso-inicio))
+    progreso+= 1
