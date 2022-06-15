@@ -1,0 +1,10 @@
+use('test');
+
+db.tweets.aggregate(
+    [
+        { $match: {} },
+        { $group: { _id: "$user.id", tweets: { $sum: 1 } } },
+        { $sort: { tweets: -1 } },
+        { $limit: 10 }
+    ]
+ )
