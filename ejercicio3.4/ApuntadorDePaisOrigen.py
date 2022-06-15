@@ -146,5 +146,5 @@ for document in collection.find({},{'_id': 1, 'user.location': 1}):
     nuevoValor = {"$set": {"user.country": userCountry}}
     collection.update_one(filtro, nuevoValor)
     paso = time.time()
-    print(str(progreso)+ " / " + str(fin) + " # " + str(progreso/fin) + " | " + str(paso-inicio))
+    print(str(progreso)+ " / " + str(fin) + " # " + str(progreso/fin) + "%" + " | " + str(paso-inicio))
     progreso+= 1
