@@ -1,7 +1,3 @@
-import time
-import datetime
-import re
-
 import numpy as np
 import psycopg2
 import pandas as pd
@@ -20,7 +16,6 @@ POSTGRESQL_USER = "postgres"
 POSTGRESQL_PASSWORD = "postgres"
 POSTGRESQL_HOST = "localhost"
 DESCONOCIDO = "Unknown"
-CONSTANTE_PORCENTAJE = 100
 
 PATH_WORLD = r'.\world\ne_10m_admin_0_countries.shp'
 
@@ -76,7 +71,7 @@ listaDePaises = []
 
 #query solo tweets que tengan user.country y que no sean de paises desconocidos
 consulta = collection.find({
-    "user.country": {"$exists": "true", "$ne": "Unknown"}},
+    "user.country": {"$exists": "true", "$ne": DESCONOCIDO}},
     {'_id': 0, 'user.country': 1})
 
 #agrega codigos de paises y nombre de paises a lista
