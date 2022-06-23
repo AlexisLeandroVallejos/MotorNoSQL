@@ -6,12 +6,12 @@ from pymongo import MongoClient
 import math
 
 #constantes
-RUTA_ARCHIVO = r'.\ne_10m_admin_0_countries.shp'
+RUTA_ARCHIVO = r'.\world\ne_10m_admin_0_countries.shp'
 MONGO_HOST = "localhost"
 MONGO_PUERTO = 27017
 MONGO_DB_NOMBRE = "test"
-MONGO_COLLECTION_NOMBRE = "tweets_by_country_result"
-
+#MONGO_COLLECTION_NOMBRE = "tweets_by_country_result"
+MONGO_COLLECTION_NOMBRE = "tweets"
 gpdworld = gpd.read_file(RUTA_ARCHIVO).rename(columns = {'ADM0_A3': 'code'})
 
 #Mongo conexion
@@ -22,7 +22,8 @@ try:
 except:
     print("Could not connect to MongoDB")
 
-cursor = collection.find({'value': {"$ne":"Unknown"}})
+#cursor = collection.find({'value': {"$ne":"Unknown"}})
+cursor = collection.find({'user.country': {"$ne":"Unknown"}},{"_id": 1, "user.country":1})
 df = pd.DataFrame(list(cursor)).rename(columns={'_id': 'code'})
 df['value'] = df['value'].apply(lambda x: math.log10(x))
 
