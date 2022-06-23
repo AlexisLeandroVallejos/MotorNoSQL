@@ -166,7 +166,7 @@ for document in collection.find({},{'_id': 1, 'user.location': 1}):
     filtro = {'_id': document['_id']}
     PAIS_NOMBRE = 'paisNombre'
     if locationEstaVacio(document):
-        collection.update_one(filtro, nuevoValor(DESCONOCIDO))
+        #collection.update_one(filtro, nuevoValor(DESCONOCIDO))
         contadorUserLocationVacio += 1
     else:
         coincidenciaPorPais = False
@@ -175,7 +175,7 @@ for document in collection.find({},{'_id': 1, 'user.location': 1}):
         esListaDeCiudades = False
         for elemento in dfWorldCountry[PAIS_NOMBRE]:
             if (compararStringSimilar(document, elemento, esListaDeCiudades)):
-                collection.update_one(filtro, nuevoValor(elemento))
+                #collection.update_one(filtro, nuevoValor(elemento))
                 coincidenciaPorPais = True
                 contadorCoincidenciaPorPais += 1
                 break
@@ -183,7 +183,7 @@ for document in collection.find({},{'_id': 1, 'user.location': 1}):
             esListaDeCiudades = True
             for (codigoPais, listaDeCiudades) in diccionarioCodigoCiudadNombre.items():
                 if(compararStringSimilarLista(document, listaDeCiudades, esListaDeCiudades)):
-                    collection.update_one(filtro, nuevoValor(codigoPais))
+                    #collection.update_one(filtro, nuevoValor(codigoPais))
                     coincidenciaPorCiudad = True
                     contadorCoincidenciaPorCiudad += 1
                     break
@@ -191,7 +191,7 @@ for document in collection.find({},{'_id': 1, 'user.location': 1}):
             esListaDeCiudades = False
             for (codigoPais, listaDeDistritos) in diccionarioCodigoDistrito.items():
                 if(compararStringSimilarLista(document, listaDeDistritos, esListaDeCiudades)):
-                    collection.update_one(filtro, nuevoValor(codigoPais))
+                    #collection.update_one(filtro, nuevoValor(codigoPais))
                     coincidenciaPorDistrito = True
                     contadorCoincidenciaPorDistrito += 1
                     break

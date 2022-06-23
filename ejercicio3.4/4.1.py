@@ -22,6 +22,7 @@ MONGO_COLLECTION_NOMBRE = "tweets"
 POSTGRESQL_DB_NOMBRE = "world"
 POSTGRESQL_USER = "postgres"
 POSTGRESQL_PASSWORD = "123456"
+#POSTGRESQL_PASSWORD = "postgres"
 POSTGRESQL_HOST = "localhost"
 UNKNOWN = "unknown"
 NONE = "none"
@@ -163,4 +164,3 @@ for tweet in collection.find({'user.location': {"$ne":None}}, {'_id': 1, 'user.l
 
 
 print("\nFin del proceso")
-
