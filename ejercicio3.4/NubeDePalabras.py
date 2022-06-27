@@ -1,4 +1,3 @@
-import psycopg2
 from matplotlib import pyplot as plt
 from pymongo import MongoClient
 from wordcloud import WordCloud
@@ -16,38 +15,113 @@ client = MongoClient(MONGO_HOST, MONGO_PUERTO)
 database = client[MONGO_DB_NOMBRE]
 collection = database[MONGO_COLLECTION_NOMBRE]
 
+#constantes query
+QUERY_SUM = 1
+QUERY_SORT = -1
+QUERY_FINDALL_REGEX = r"[A-Za-z0-9áéíóúñ]{2,}"
+
+#listapalabrascomunes
+LISTA_PALABRAS_COMUNES_PRIMER_PAIS = ["rt", "no", "que", "de", "la", "las", "en", "el", "co", "es", "los", "con", "del", "al", "lo", "le", "si", "ya", "le", "me", "mi", "te", "yo", "se", "va", "https", "mas", "tan", "una"]
+LISTA_PALABRAS_COMUNES_SEGUNDO_PAIS = ["rt", "the", "to", "co", "is", "in", "that", "of", "and", "for", "can", "they", "aoc", "we", "on", "it", "this", "you", "are", "at", "he", "with", "not", "de", "la", "no", "as", "us", "she", "an", "my", "https"]
+LAS_20_MAS_USADAS = 20
+
 #elegir 2 paises:
 PAIS_1_COD = "ARG"
 PAIS_2_COD = "USA"
 
-LAS_20_MAS_USADAS = 20
+#diccionarios
 diccionarioPalabrasPrimerPais = {}
 diccionarioPalabrasSegundoPais = {}
 
 #query primer pais
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
 consultaMapReducePrimerPais = collection.aggregate([
-    { "$match": {"user.country": {"$eq": PAIS_1_COD}}},
-    { "$project" : { "text" : { "$split": ["$text", " "] } } },
-    { "$unwind" : "$text" },
-    { "$group" : { "_id":  "$text" , "cantidad" : { "$sum" : 1 } } },
-    { "$sort" : { "cantidad" : -1 } }
+    {
+        '$match': {
+            'user.country': PAIS_1_COD
+        }
+    }, {
+        '$project': {
+            'cantidad': {
+                '$regexFindAll': {
+                    'input': {
+                        '$toLower': '$text'
+                    },
+                    'regex': QUERY_FINDALL_REGEX
+                }
+            }
+        }
+    }, {
+        '$unwind': {
+            'path': '$cantidad'
+        }
+    }, {
+        '$group': {
+            '_id': '$cantidad.match',
+            'cantidadTotal': {
+                '$sum': QUERY_SUM
+            }
+        }
+    }, {
+        '$sort': {
+            'cantidadTotal': QUERY_SORT
+        }
+    }
 ])
 
 #query segundo pais
+# Requires the PyMongo package.
+# https://api.mongodb.com/python/current
 consultaMapReduceSegundoPais = collection.aggregate([
-    { "$match": {"user.country": {"$eq": PAIS_2_COD}}},
-    { "$project" : { "text" : { "$split": ["$text", " "] } } },
-    { "$unwind" : "$text" },
-    { "$group" : { "_id":  "$text" , "cantidad" : { "$sum" : 1 } } },
-    { "$sort" : { "cantidad" : -1 } }
+    {
+        '$match': {
+            'user.country': PAIS_2_COD
+        }
+    }, {
+        '$project': {
+            'cantidad': {
+                '$regexFindAll': {
+                    'input': {
+                        '$toLower': '$text'
+                    },
+                    'regex': QUERY_FINDALL_REGEX
+                }
+            }
+        }
+    }, {
+        '$unwind': {
+            'path': '$cantidad'
+        }
+    }, {
+        '$group': {
+            '_id': '$cantidad.match',
+            'cantidadTotal': {
+                '$sum': QUERY_SUM
+            }
+        }
+    }, {
+        '$sort': {
+            'cantidadTotal': QUERY_SORT
+        }
+    }
 ])
 
-#palabras a lista
+#palabras a diccionarios
 for elemento in consultaMapReducePrimerPais:
-    diccionarioPalabrasPrimerPais[elemento["_id"]] = elemento["cantidad"]
+    diccionarioPalabrasPrimerPais[elemento["_id"]] = elemento["cantidadTotal"]
 
 for elemento in consultaMapReduceSegundoPais:
-    diccionarioPalabrasSegundoPais[elemento["_id"]] = elemento["cantidad"]
+    diccionarioPalabrasSegundoPais[elemento["_id"]] = elemento["cantidadTotal"]
+
+#filtrar palabras comunes
+for clave, valor in list(diccionarioPalabrasPrimerPais.items()):
+    if clave in LISTA_PALABRAS_COMUNES_PRIMER_PAIS:
+        diccionarioPalabrasPrimerPais.pop(clave, None)
+
+for clave, valor in list(diccionarioPalabrasSegundoPais.items()):
+    if clave in LISTA_PALABRAS_COMUNES_SEGUNDO_PAIS:
+        diccionarioPalabrasSegundoPais.pop(clave, None)
 
 #las 20 mas usadas
 lasMasUsadasDelPrimerPais = list(diccionarioPalabrasPrimerPais.items())[:LAS_20_MAS_USADAS]
